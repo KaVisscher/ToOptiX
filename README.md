@@ -1,5 +1,33 @@
-<<<<<<< HEAD
-# test
-=======
-# ToOptix_work
->>>>>>> 545ff5cc6f8796173c60f7e9a173a3095b1263de
+## Topology optimization tool for multi physic 
+This tool can be used for multi physic topology optimization.
+Therefor open source solver for FEM like CalculiX can be used.
+Models can be created with FreeCAD
+
+## Current State 01.03.2017
+
+- Using models for CalculiX (Can be created with FreeCAD for example)
+- Structural topology optimization (static)
+- Thermal topology optimization (heat transfer)
+- Combination of thermal and structural (Weight factor)
+- Plugin for Blender
+
+
+## Future works (start at 01.08.2017)
+
+- Code clean up
+- Agile software development
+- Code documentation
+- Multi material (stabilized)
+- Damage accumulation (Minor rule etc...)
+- Restart option
+- New physic types (Conduction, Electromagnetic, Electrostatic)
+
+## Licence
+
+GNU GENERAL PUBLIC LICENSE
+Version 2, June 1991
+
+
+
+
+
