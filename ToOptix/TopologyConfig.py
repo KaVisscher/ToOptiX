@@ -11,6 +11,7 @@ def run_optimization():
 
     #---------------Input Path
     work_path = "./RunAndResultFolder"
+    test = "a"
     counter = 0
     while os.path.isdir(work_path):
         work_path = "./RunAndResultFolder" + str(counter)
