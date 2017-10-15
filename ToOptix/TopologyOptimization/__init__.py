@@ -1,5 +1,0 @@
-from MaterialFunction import MaterialFunction
-from BasicOptimization import BasicOptimization
-from DesignSpace import DesignSpace
-from FilterStructure import FilterStructure
-from FESystem import FESystem

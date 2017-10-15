@@ -1,35 +1,37 @@
 import Phraser
-import TopologyOptimization
+
+from . import Geometry
 import os
 import numpy as np
 import logging
-import subprocess
 
 
+def run_optimization(volfrac, penal, workDir, solverPath, matSets, iterations, StructIsActive, staticPath, weightStatic, thermIsActive, heatPath, weightTherm):
 
-def run_optimization():
 
     #---------------Input Path
-    work_path = "./RunAndResultFolder"
-    counter = 0
-    while os.path.isdir(work_path):
-        work_path = "./RunAndResultFolder" + str(counter)
-        counter += 1
-    work_path += "/"
+
+    work_path = workDir
     result_path = work_path + "/STL_Results/"
-    solver_path = "ccx"
+    solver_path = solverPath
 
-    s_fe_system = TopologyOptimization.FESystem()
-    s_fe_system.set_type('static')
-    s_fe_system.set_file_path("InputS.inp")
-    s_fe_system.set_weight_factor(5)
+    all_fe_systems = []
+    if StructIsActive:
+        s_fe_system = TopologyOptimization.FESystem()
+        s_fe_system.set_type('static')
+        s_fe_system.set_file_path(staticPath)
+        s_fe_system.set_weight_factor(weightStatic)
+        all_fe_systems.append(s_fe_system)
 
-    t_fe_system = TopologyOptimization.FESystem()
-    t_fe_system.set_type('heat_transfer')
-    t_fe_system.set_file_path("InputT.inp")
-    t_fe_system.set_weight_factor(5)
+    if thermIsActive:
 
-    all_fe_systems = [s_fe_system, t_fe_system]
+        t_fe_system = TopologyOptimization.FESystem()
+        t_fe_system.set_type('heat_transfer')
+        t_fe_system.set_file_path(heatPath)
+        t_fe_system.set_weight_factor(weightTherm)
+        all_fe_systems.append(t_fe_system)
+
+
 
     #------------------Input Path
 
@@ -51,7 +53,7 @@ def run_optimization():
     # Import files and create FEM objects
     ccx_phraser = Phraser.ReadINP()
     # Get a file for the phraser (just for building up the element and material settings)
-    ccx_phraser.set_filename(s_fe_system.get_file_path())
+    ccx_phraser.set_filename(all_fe_systems[0].get_file_path())
     femObj_topo = ccx_phraser.read()
 
 
@@ -68,12 +70,16 @@ def run_optimization():
     # There can be several different material definitions
     material = femObj_topo.get_solid_sections()[0].get_material()
     material_function = TopologyOptimization.MaterialFunction(material, femObj_topo.get_all_elements())
+    material_function.set_material_steps(matSets)
+    material_function.set_exponent(penal)
 
 
     optimizer = TopologyOptimization.BasicOptimization()
     optimizer.set_maximum_change_per_iteration(0.2)
-    optimizer.set_minimum_compaction_ratio(0.3)
-    optimizer.set_compaction_reduction(0.05)
+    optimizer.set_minimum_compaction_ratio(volfrac)
+    optimizer.set_compaction_reduction((1.0-volfrac)/iterations)
+    optimizer.set_exponent(penal)
+
 
     #------------ Start optimization loop
     converged = False
@@ -103,19 +109,17 @@ def run_optimization():
                 # ---------  Run static part
                 # Calculate system for displacement
                 ccx_writer.modify_file_for_static_topo(system.get_file_path(), work_path + 'StaticSysTopo.inp', femObj_topo)
-                proc1 = subprocess.Popen([solver_path,  work_path + "StaticSysTopo"])
-                proc1.wait()
-
-
+                cmd_topo_static = solver_path + " " + work_path + "StaticSysTopo"
+                os.system(cmd_topo_static)
 
                 # Read results for boundarys
                 result_reader = Phraser.ReadDAT(work_path + 'StaticSysTopo.dat')
                 result_reader.add_displacement(femObj_topo)
 
                 # Calculate energy density
+                cmd_sens_static = solver_path + " "  + work_path + 'StaticSensTopo'
                 ccx_writer.modify_file_add_displacement_boundaries(system.get_file_path(),  work_path + 'StaticSensTopo.inp', femObj_topo)
-                proc2 = subprocess.Popen([solver_path, work_path + 'StaticSensTopo'])
-                proc2.wait()
+                os.system(cmd_sens_static)
 
                 # Read results for energy density
                 result_reader = Phraser.ReadDAT(work_path + 'StaticSensTopo.dat')
@@ -126,8 +130,8 @@ def run_optimization():
                 # ------- Run thermal part
                 # Calculate system for temperature
                 ccx_writer.modify_file_for_heat_transfer_topo(system.get_file_path(), work_path + 'ThermSysTopo.inp', femObj_topo)
-                proc3 = subprocess.Popen([solver_path, work_path + 'ThermSysTopo'])
-                proc3.wait()
+                cmd_topo_therm = solver_path + ' ' + work_path + 'ThermSysTopo'
+                os.system(cmd_topo_therm)
 
                 # Read results for boundarys
                 result_reader = Phraser.ReadDAT(work_path + 'ThermSysTopo.dat')
@@ -136,8 +140,7 @@ def run_optimization():
                 # Calculate heat flux
                 cmd_sens_therm = solver_path + ' ' + work_path + 'ThermSensTopo'
                 ccx_writer.modify_file_add_temperature_boundaries(system.get_file_path(), work_path + 'ThermSensTopo.inp', femObj_topo)
-                proc4 = subprocess.Popen([solver_path, work_path + 'ThermSensTopo'])
-                proc4.wait()
+                os.system(cmd_sens_therm)
 
                 # Read results for heat flux
                 result_reader = Phraser.ReadDAT(work_path + 'ThermSensTopo.dat')
@@ -149,7 +152,7 @@ def run_optimization():
         # Start optimizer
         optimizer.set_design_variables_as_compaction(design_space)
         print("filter sensitivity")
-        optimizer.filter_sensitivity(design_space, filter_structure)
+        #optimizer.filter_sensitivity(design_space, filter_structure)
         print("start optimization")
         optimizer.optimize()
         print("end optimization")
@@ -181,10 +184,10 @@ def run_optimization():
                 if elem.get_compaction() > 0.5:
                     res_elem.append(elem)
 
-            topo_surf = Phraser.Surface()
+            topo_surf = Geometry.Surface()
             topo_surf.create_surface_on_elements(res_elem)
             stl_file = Phraser.STL(1)
-            topo_part = Phraser.Solid(1, topo_surf.triangles)
+            topo_part = Geometry.Solid(1, topo_surf.triangles)
             stl_file.parts.append(topo_part)
             print ("Exporting result result elements", len(res_elem))
             if os.path.isfile('STL_res_' + str(iteration) + '.stl'):
@@ -198,16 +201,16 @@ def run_optimization():
         if elem.get_compaction() > 0.5:
             res_elem.append(elem)
 
-    topo_surf = Phraser.Surface()
+    topo_surf = Geometry.Surface()
     topo_surf.create_surface_on_elements(res_elem)
     stl_file = Phraser.STL(1)
-    topo_part = Phraser.Solid(1, topo_surf.triangles)
+    topo_part = Geometry.Solid(1, topo_surf.triangles)
     stl_file.parts.append(topo_part)
     print ("Exporting result result elements", len(res_elem))
     if os.path.isfile('STL_res_last.stl'):
         os.remove('STL_res_last.stl')
     stl_file.write('STL_res_last.stl')
-run_optimization()
+
 
 
 
