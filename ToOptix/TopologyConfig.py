@@ -1,6 +1,6 @@
 import Phraser
-
-from . import Geometry
+import TopologyOptimization
+import Geometry
 import os
 import numpy as np
 import logging
@@ -10,9 +10,8 @@ def run_optimization(volfrac, penal, workDir, solverPath, matSets, iterations, S
 
 
     #---------------Input Path
-
     work_path = workDir
-    result_path = work_path + "/STL_Results/"
+    result_path = os.path.join(work_path, "GeometryResults")
     solver_path = solverPath
 
     all_fe_systems = []
@@ -34,7 +33,6 @@ def run_optimization(volfrac, penal, workDir, solverPath, matSets, iterations, S
 
 
     #------------------Input Path
-
     # Logging file
     if os.path.isfile(work_path + 'Topo.log'):
         os.remove(work_path + 'Topo.log')
@@ -211,7 +209,21 @@ def run_optimization(volfrac, penal, workDir, solverPath, matSets, iterations, S
         os.remove('STL_res_last.stl')
     stl_file.write('STL_res_last.stl')
 
-
+"""
+volfrac = 0.3
+penal = 3.0
+workDir = "./TESTFile/"
+solverPath = "ccx"
+matSets = 20
+iterations = 10
+StructIsActive = True
+staticPath = "InputS.inp"
+weightStatic = 1.0
+thermIsActive = False
+heatPath = ""
+weightTherm = 1.0
+run_optimization(volfrac, penal, workDir, solverPath, matSets, iterations, StructIsActive, staticPath, weightStatic, thermIsActive, heatPath, weightTherm)
+"""
 
 
 
