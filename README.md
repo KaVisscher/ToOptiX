@@ -1,4 +1,4 @@
-## Installation Blender BlugIn
+## Installation Blender PlugIn
 - Download Blender and install it on the Desktop or your User Folder
 - Paste ToOptix into the AddOn Folder of Blender
 - Create a working directory on the Desktop or your User Folder
