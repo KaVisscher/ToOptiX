@@ -23,6 +23,7 @@ Models can be created with FreeCAD
 - Thermal + Static stabilised
 - Automatic Unit Tests
 - Voxel based meshes created out of blender
+- jupiter-notebook of python code for starting TopologyOptimization native from python
  
 
 ## Licence
